@@ -1,0 +1,398 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@/components/ui/progress"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BarChart, DonutChart } from "@tremor/react"
+import { TrendingUp, Clock, CheckCircle, ThumbsUp, BarChart as BarChartIcon, Users, Zap, MessageSquare, AlertTriangle, ThumbsDown, Activity } from "lucide-react"
+
+interface ProjectData {
+  completion: number
+  completionTime: string
+  activeTasks: number
+  stakeholderSatisfaction: number
+  taskDistribution: {
+    [key: string]: number
+  }
+  teamPerformance: number
+  keyMetrics: {
+    burndownRate: string
+    velocity: string
+    bugRate: string
+  }
+  stakeholderFeedback: Array<{
+    name: string
+    comment: string
+    type: string
+  }>
+  activeBlockers: Array<{
+    employee: string
+    task: string
+    status: string
+    update: string
+  }>
+  teamSentiment: string
+  projectReport: string
+  risks: Array<{
+    risk: string
+    mitigation: string
+  }>
+}
+
+const projects = ['Project Nexus', 'Project Alpha', 'Project Beta']
+
+const dummyData: Record<string, ProjectData> = {
+  'Project Nexus': {
+    completion: 68,
+    completionTime: "3 months 2 weeks",
+    activeTasks: 28,
+    stakeholderSatisfaction: 4.2,
+    taskDistribution: {
+      todo: 15,
+      inProgress: 8,
+      review: 5,
+      done: 22,
+    },
+    teamPerformance: 85,
+    keyMetrics: {
+      burndownRate: "On track",
+      velocity: "22 story points/sprint",
+      bugRate: "2.5 bugs/feature",
+    },
+    stakeholderFeedback: [
+      { name: "John Doe", comment: "Great progress on the UI!", type: "Positive" },
+      { name: "Jane Smith", comment: "Need to improve API response times", type: "Improvement" },
+    ],
+    activeBlockers: [
+      { employee: "Alex Kim", task: "Implement user authentication", status: "Blocked", update: "Waiting for API keys from the security team." },
+      { employee: "Jamie Lee", task: "Optimize database queries", status: "In Review", update: "Performance issues identified during testing." },
+    ],
+    teamSentiment: "Positive",
+    projectReport: "Project Nexus is progressing well, with 68% completion. The team is maintaining a good velocity of 22 story points per sprint. However, there are some concerns about API response times that need to be addressed. Two active blockers require immediate attention to prevent potential delays.",
+    risks: [
+      { risk: "API performance issues", mitigation: "Conduct a thorough review of the API architecture and implement caching where appropriate." },
+      { risk: "Potential delay due to blocked authentication task", mitigation: "Escalate the API key request to the security team lead and consider using a mock authentication service for development." },
+    ],
+  },
+  'Project Alpha': {
+    completion: 42,
+    completionTime: "5 months 1 week",
+    activeTasks: 35,
+    stakeholderSatisfaction: 3.8,
+    taskDistribution: {
+      todo: 20,
+      inProgress: 12,
+      review: 3,
+      done: 15,
+    },
+    teamPerformance: 72,
+    keyMetrics: {
+      burndownRate: "Slightly behind",
+      velocity: "18 story points/sprint",
+      bugRate: "3.1 bugs/feature",
+    },
+    stakeholderFeedback: [
+      { name: "Alice Johnson", comment: "Concerned about the current pace", type: "Concern" },
+      { name: "Bob Williams", comment: "The new feature looks promising", type: "Positive" },
+    ],
+    activeBlockers: [
+      { employee: "Charlie Brown", task: "Resolve database migration issues", status: "Blocked", update: "Waiting for input from the database admin." },
+    ],
+    teamSentiment: "Neutral",
+    projectReport: "Project Alpha is facing some challenges, currently at 42% completion. The team's velocity has dropped to 18 story points per sprint, and the project is slightly behind schedule. Stakeholder satisfaction has decreased, and there are concerns about the current pace. The team needs to address the database migration issues to unblock progress.",
+    risks: [
+      { risk: "Project falling behind schedule", mitigation: "Conduct a team workshop to identify bottlenecks and optimize the workflow." },
+      { risk: "Increasing bug rate", mitigation: "Implement stricter code review processes and increase unit test coverage." },
+    ],
+  },
+  'Project Beta': {
+    completion: 95,
+    completionTime: "2 weeks",
+    activeTasks: 10,
+    stakeholderSatisfaction: 4.8,
+    taskDistribution: {
+      todo: 5,
+      inProgress: 3,
+      review: 2,
+      done: 40,
+    },
+    teamPerformance: 98,
+    keyMetrics: {
+      burndownRate: "Ahead of schedule",
+      velocity: "25 story points/sprint",
+      bugRate: "1.2 bugs/feature",
+    },
+    stakeholderFeedback: [
+      { name: "Eva Martinez", comment: "Extremely satisfied with the progress!", type: "Positive" },
+      { name: "Frank Lee", comment: "Looking forward to the final delivery", type: "Positive" },
+    ],
+    activeBlockers: [],
+    teamSentiment: "Very Positive",
+    projectReport: "Project Beta is nearing completion at 95%, with only 2 weeks left. The team has maintained an impressive velocity of 25 story points per sprint and is ahead of schedule. Stakeholder satisfaction is high at 4.8/5, and the bug rate is low at 1.2 bugs per feature. The team morale is very positive, and there are currently no active blockers.",
+    risks: [
+      { risk: "Potential overconfidence due to current success", mitigation: "Maintain vigilance in the final stages and conduct thorough testing before release." },
+      { risk: "Last-minute change requests", mitigation: "Clearly communicate the project's change freeze policy to all stakeholders." },
+    ],
+  },
+}
+
+export default function Dashboard() {
+  const [selectedProject, setSelectedProject] = useState(projects[0])
+  const [projectData, setProjectData] = useState<ProjectData | null>(null)
+
+  useEffect(() => {
+    setProjectData(dummyData[selectedProject])
+  }, [selectedProject])
+
+  if (!projectData) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>
+  }
+
+  const taskDistributionData = Object.entries(projectData.taskDistribution).map(([name, value]) => ({
+    name,
+    value,
+  }))
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <h1 className="text-3xl sm:text-4xl font-bold text-gray-800 dark:text-white">Project Dashboard</h1>
+          <Select onValueChange={setSelectedProject} defaultValue={selectedProject}>
+            <SelectTrigger className="w-[200px]">
+              <SelectValue placeholder="Select project" />
+            </SelectTrigger>
+            <SelectContent>
+              {projects.map((project) => (
+                <SelectItem key={project} value={project}>
+                  {project}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+          <Card className="bg-white dark:bg-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Project Completion</CardTitle>
+              <TrendingUp className="w-4 h-4 text-green-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800 dark:text-white">{projectData.completion}%</div>
+              <Progress value={projectData.completion} className="mt-2" />
+            </CardContent>
+          </Card>
+          <Card className="bg-white dark:bg-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Completion Time</CardTitle>
+              <Clock className="w-4 h-4 text-blue-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800 dark:text-white">{projectData.completionTime}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white dark:bg-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Active Tasks</CardTitle>
+              <CheckCircle className="w-4 h-4 text-purple-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800 dark:text-white">{projectData.activeTasks}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-white dark:bg-gray-800">
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium text-gray-500 dark:text-gray-400">Stakeholder Satisfaction</CardTitle>
+              <ThumbsUp className="w-4 h-4 text-yellow-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-gray-800 dark:text-white">{projectData.stakeholderSatisfaction}/5</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <Card className="bg-white dark:bg-gray-800">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white">Task Distribution</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DonutChart
+                data={taskDistributionData}
+                category="value"
+                index="name"
+                valueFormatter={(value) => `${value} tasks`}
+                colors={["slate", "violet", "indigo", "rose"]}
+                className="h-80"
+              />
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white dark:bg-gray-800">
+            <CardHeader>
+              <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white">Team Performance</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between mb-4">
+                <div className="text-3xl font-bold text-gray-800 dark:text-white">{projectData.teamPerformance}%</div>
+                <Users className="w-6 h-6 text-blue-500" />
+              </div>
+              <Progress value={projectData.teamPerformance} className="h-2 mb-4" />
+              <p className="text-sm text-gray-600 dark:text-gray-400">Overall team efficiency and productivity</p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="overview" className="mb-6">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="stakeholders">Stakeholders</TabsTrigger>
+            <TabsTrigger value="blockers">Blockers & Risks</TabsTrigger>
+            <TabsTrigger value="ai-insights">AI Insights</TabsTrigger>
+          </TabsList>
+          <TabsContent value="overview">
+            <Card className="bg-white dark:bg-gray-800">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white">Key Metrics</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 md:grid-cols-3">
+                  {Object.entries(projectData.keyMetrics).map(([metric, value]) => (
+                    <div key={metric} className="bg-gray-100 dark:bg-gray-700 p-4 rounded-lg">
+                      <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 capitalize">{metric.replace(/([A-Z])/g, ' $1').trim()}</h3>
+                      <p className="text-lg font-semibold text-gray-800 dark:text-white">{value}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="stakeholders">
+            <Card className="bg-white dark:bg-gray-800">
+              <CardHeader>
+                <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white">Stakeholder Feedback</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {projectData.stakeholderFeedback.map((feedback, index) => (
+                    <div key={index} className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
+                      <div className="flex justify-between items-center mb-2">
+                        <p className="font-medium  text-gray-800 dark:text-white">{feedback.name}</p>
+                        <Badge 
+                          variant={feedback.type === 'Positive' ? 'default' : 'outline'}
+                          className={feedback.type === 'Positive' ? 'bg-green-100 text-green-800 dark:bg-green-800 dark:text-green-100' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-800 dark:text-yellow-100'}
+                        >
+                          {feedback.type}
+                        </Badge>
+                      </div>
+                      <p className="text-gray-600 dark:text-gray-300 text-sm">{feedback.comment}</p>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          <TabsContent value="blockers">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="bg-white dark:bg-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white">Active Blockers</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[300px]">
+                    {projectData.activeBlockers.length > 0 ? (
+                      projectData.activeBlockers.map((blocker, index) => (
+                        <div key={index} className="mb-4 p-4 bg-red-50 dark:bg-red-900 rounded-lg border border-red-200 dark:border-red-700">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="font-semibold text-gray-800 dark:text-white">{blocker.employee}</span>
+                            <Badge 
+                              variant="outline"
+                              className={
+                                blocker.status === 'Blocked' ? 'bg-red-100 text-red-800 border-red-300 dark:bg-red-800 dark:text-red-100 dark:border-red-600' :
+                                blocker.status === 'In Review' ? 'bg-yellow-100 text-yellow-800 border-yellow-300 dark:bg-yellow-800 dark:text-yellow-100 dark:border-yellow-600' :
+                                'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-800 dark:text-orange-100 dark:border-orange-600'
+                              }
+                            >
+                              {blocker.status}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mb-2">
+                            <span className="font-medium text-gray-800 dark:text-white">Task:</span> {blocker.task}
+                          </p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{blocker.update}</p>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-gray-600 dark:text-gray-400">No active blockers at this time.</p>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+              <Card className="bg-white dark:bg-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white">Identified Risks</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[300px]">
+                    {projectData.risks.map((risk, index) => (
+                      <div key={index} className="mb-4 p-4 bg-yellow-50 dark:bg-yellow-900 rounded-lg border border-yellow-200 dark:border-yellow-700">
+                        <div className="flex items-start space-x-2">
+                          <AlertTriangle className="text-yellow-500 mt-1 flex-shrink-0" />
+                          <div>
+                            <p className="font-semibold text-gray-800 dark:text-white">{risk.risk}</p>
+                            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">{risk.mitigation}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+          <TabsContent value="ai-insights">
+            <div className="grid gap-6 md:grid-cols-2">
+              <Card className="bg-white dark:bg-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white">Team Sentiment Analysis</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center space-x-2">
+                    <div className="text-2xl font-bold text-gray-800 dark:text-white">{projectData.teamSentiment}</div>
+                    {projectData.teamSentiment === 'Very Positive' || projectData.teamSentiment === 'Positive' ? (
+                      <ThumbsUp className="h-6 w-6 text-green-500" />
+                    ) : projectData.teamSentiment === 'Very Negative' || projectData.teamSentiment === 'Negative' ? (
+                      <ThumbsDown className="h-6 w-6 text-red-500" />
+                    ) : (
+                      <Badge>Neutral</Badge>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+              <Card className="bg-white dark:bg-gray-800">
+                <CardHeader>
+                  <CardTitle className="text-xl font-semibold text-gray-800 dark:text-white">AI-Generated Project Report</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ScrollArea className="h-[200px]">
+                    <p className="text-gray-600 dark:text-gray-300">{projectData.projectReport}</p>
+                  </ScrollArea>
+                  <div className="mt-4">
+                    <Button>Download Full Report</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  )
+}
